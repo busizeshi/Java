@@ -6,7 +6,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,12 +15,15 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @RestController
-@RequiredArgsConstructor
 public class MultiTurnController {
 
+    private final RListService rListService;
     private final ChatModel chatModel;
 
-    private final RListService rListService;
+    public MultiTurnController(RListService rListService, @Qualifier("qwenMaxModel") ChatModel chatModel) {
+        this.rListService = rListService;
+        this.chatModel = chatModel;
+    }
 
 
     @GetMapping("/chat/multi-turn")
