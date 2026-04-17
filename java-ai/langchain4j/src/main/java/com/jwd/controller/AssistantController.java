@@ -1,9 +1,11 @@
 package com.jwd.controller;
 
+import com.jwd.model.CodeReviewRequest;
+import com.jwd.model.SentimentResult;
+import com.jwd.model.TicketCategory;
 import com.jwd.service.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -17,8 +19,15 @@ public class AssistantController {
 
     private final TenantAssistant tenantAssistant;
 
-
     private final DoubaoAssistant doubaoAssistant;
+
+    private final TranslateAssistant translateAssistant;
+
+    private final CodeReviewerAssistant codeReviewerAssistant;
+
+    private final SentimentAnalyser sentimentAnalyser;
+
+    private final TicketClassifier ticketClassifier;
 
     @GetMapping("/ai-service/sample-test")
     public String sampleTest(String question) {
@@ -53,5 +62,36 @@ public class AssistantController {
     @GetMapping("/ai-service/tenant")
     public String tenant(String domain,String message) {
         return tenantAssistant.chat(domain, message);
+    }
+
+    @GetMapping("/ai-service/translate")
+    public String translate(String text, String targetLanguage) {
+        return translateAssistant.translate(text, targetLanguage);
+    }
+
+    @GetMapping("/ai-service/speech")
+    public String speech(String message) {
+        return translateAssistant.speech(message);
+    }
+
+    @PostMapping("/ai-service/code-review")
+    public String codeReview(@RequestBody CodeReviewRequest request) {
+        return codeReviewerAssistant.reviewCode(request.code(), request.language(), request.focusArea());
+    }
+
+//    @GetMapping("/ai-service/customer-service")
+//    public String customerService(String company,
+//                                  @RequestParam(defaultValue = "产品咨询、售后服务、投诉建议") String serviceScope,
+//                                  String message) {
+//        return fileBasedAssistant.chat(company, serviceScope, message);
+//    }
+
+    @GetMapping("/ai-service/sentiment-analysis")
+    public SentimentResult sentimentAnalysis(String comment) {
+        return sentimentAnalyser.analyzeSentiment(comment);
+    }
+    @GetMapping("/ai-service/ticket-classifier")
+    public TicketCategory ticketClassifier(String ticket) {
+        return ticketClassifier.classify(ticket);
     }
 }
