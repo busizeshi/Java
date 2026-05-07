@@ -1,4 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+﻿<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -12,6 +12,7 @@
         <module>spring-ai</module>
         <module>langchain4j</module>
         <module>common</module>
+        <module>agent</module>
     </modules>
 
     <parent>
@@ -22,12 +23,12 @@
     </parent>
 
     <properties>
-        <!-- Java 版本 -->
+        <!-- Java 鐗堟湰 -->
         <java.version>21</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
-        <!-- Spring AI 版本 -->
+        <!-- Spring AI 鐗堟湰 -->
         <spring-ai.version>1.0.0</spring-ai.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -55,7 +56,7 @@
         </dependencies>
     </dependencyManagement>
 
-    <!-- ========== 依赖声明（按需添加） ========== -->
+    <!-- ========== 渚濊禆澹版槑锛堟寜闇€娣诲姞锛?========== -->
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -69,10 +70,10 @@
         </dependency>
     </dependencies>
 
-    <!-- ========== 构建插件 ========== -->
+    <!-- ========== 鏋勫缓鎻掍欢 ========== -->
     <build>
         <plugins>
-            <!-- 版本检查：强制要求 Maven >= 3.9、Java >= 21 -->
+            <!-- 鐗堟湰妫€鏌ワ細寮哄埗瑕佹眰 Maven >= 3.9銆丣ava >= 21 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -98,3 +99,5 @@
         </plugins>
     </build>
 </project>
+
+
