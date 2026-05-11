@@ -3,13 +3,11 @@ package com.jwd.handler;
 import com.jwd.model.server.*;
 import com.jwd.skill.StreamingSkillHandler;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
 
-@Component
 public class SalesReportSkillHandler implements StreamingSkillHandler {
 
     private final ChatClient chatClient;

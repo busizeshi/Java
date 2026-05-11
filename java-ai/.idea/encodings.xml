@@ -5,6 +5,11 @@
     <file url="file://$PROJECT_DIR$/a2a/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/agent/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/agent/src/main/java/com/jwd/agent/AgentApplication.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/agentscope/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/agentscope/src/main/java/com/jwd/agentscope/AgentScopeApplication.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/agentscope/src/main/java/com/jwd/agentscope/model/AgentTask.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/agentscope/src/main/java/com/jwd/agentscope/repository/AgentTaskRepository.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/agentscope/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/common/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/docs" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/langchain4j/src/main/java" charset="UTF-8" />

@@ -1,74 +1,114 @@
 package com.jwd.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jwd.handler.SkillHandler;
-import com.jwd.model.server.*;
+import com.jwd.model.server.JsonRpcRequest;
+import com.jwd.model.server.JsonRpcResponse;
+import com.jwd.model.server.Message;
+import com.jwd.model.server.Part;
+import com.jwd.model.server.Task;
+import com.jwd.model.server.TaskState;
+import com.jwd.model.server.TaskStatus;
+import com.jwd.repository.AsyncTaskExecutor;
 import com.jwd.repository.TaskRepository;
-import org.springframework.web.bind.annotation.*;
+import com.jwd.repository.WebhookRegistry;
+import com.jwd.skill.ReportGenerationSkillHandler;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
 import java.time.Instant;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
+@Tag(name = "A2A 核心协议", description = "A2A JSON-RPC 核心接口")
 public class A2aController {
 
     private final Map<String, SkillHandler> skillHandlers;
     private final TaskRepository taskRepository;
-    private final ObjectMapper objectMapper;
+    private final AsyncTaskExecutor asyncTaskExecutor;
+    private final WebhookRegistry webhookRegistry;
 
     public A2aController(
             List<SkillHandler> handlers,
             TaskRepository taskRepository,
-            ObjectMapper objectMapper) {
+            AsyncTaskExecutor asyncTaskExecutor,
+            WebhookRegistry webhookRegistry) {
 
         this.skillHandlers = new HashMap<>();
         handlers.forEach(h -> skillHandlers.put(h.skillId(), h));
         this.taskRepository = taskRepository;
-        this.objectMapper = objectMapper;
+        this.asyncTaskExecutor = asyncTaskExecutor;
+        this.webhookRegistry = webhookRegistry;
     }
 
+    @Operation(summary = "A2A JSON-RPC 统一入口", description = "支持 tasks/send、tasks/get、tasks/cancel、tasks/pushNotification/set")
     @PostMapping(value = "/", consumes = "application/json", produces = "application/json")
     public JsonRpcResponse handle(@RequestBody JsonRpcRequest request) {
         return switch (request.method()) {
-            case "tasks/send"   -> handleTaskSend(request);
-            case "tasks/get"    -> handleTaskGet(request);
+            case "tasks/send" -> handleTaskSend(request);
+            case "tasks/get" -> handleTaskGet(request);
             case "tasks/cancel" -> handleTaskCancel(request);
+            case "tasks/pushNotification/set" -> handlePushNotificationSet(request);
             default -> JsonRpcResponse.error(-32601, "Method not found: " + request.method(), request.id());
         };
     }
 
+    @SuppressWarnings("unchecked")
+    private JsonRpcResponse handlePushNotificationSet(JsonRpcRequest request) {
+        Map<String, Object> params = request.params();
+        String taskId = (String) params.get("id");
+        String webhookUrl = (String) params.get("webhookUrl");
+
+        if (taskId == null || taskId.isBlank() || webhookUrl == null || webhookUrl.isBlank()) {
+            return JsonRpcResponse.error(-32602, "id and webhookUrl are required", request.id());
+        }
+
+        webhookRegistry.register(taskId, webhookUrl);
+        return JsonRpcResponse.success(Map.of("id", taskId, "webhookUrl", webhookUrl, "registered", true), request.id());
+    }
+
+    @SuppressWarnings("unchecked")
     private JsonRpcResponse handleTaskSend(JsonRpcRequest request) {
         try {
-            // 解析参数
             Map<String, Object> params = request.params();
             String taskId = (String) params.getOrDefault("id", UUID.randomUUID().toString());
             String sessionId = (String) params.getOrDefault("sessionId", UUID.randomUUID().toString());
             String skillId = (String) params.get("skillId");
 
-            // 解析消息历史
             List<Map<String, Object>> rawHistory = (List<Map<String, Object>>) params.get("history");
             List<Message> history = parseHistory(rawHistory);
 
-            // 先保存 submitted 状态
+            SkillHandler handler = skillHandlers.get(skillId);
+            if (handler == null) {
+                return JsonRpcResponse.error(-32602, "Unknown skill: " + skillId, request.id());
+            }
+
+            Task existingTask = taskRepository.findById(taskId);
+            if (existingTask != null
+                    && existingTask.status().state() == TaskState.INPUT_REQUIRED
+                    && handler instanceof ReportGenerationSkillHandler reportHandler) {
+                Task continuedTask = reportHandler.continueTask(taskId, sessionId, history);
+                taskRepository.save(continuedTask);
+                return JsonRpcResponse.success(continuedTask, request.id());
+            }
+
             Task submittedTask = new Task(
-                    taskId, sessionId,
+                    taskId,
+                    sessionId,
                     new TaskStatus(TaskState.SUBMITTED, null, Instant.now().toString()),
-                    history, List.of(), Map.of()
+                    history,
+                    List.of(),
+                    Map.of()
             );
             taskRepository.save(submittedTask);
 
-            // 找到对应的 Skill 处理器
-            SkillHandler handler = skillHandlers.get(skillId);
-            if (handler == null) {
-                return JsonRpcResponse.error(-32602,
-                        "Unknown skill: " + skillId, request.id());
-            }
-
-            // 执行 Skill
-            Task completedTask = handler.handle(taskId, sessionId, history);
-            taskRepository.save(completedTask);
-
-            return JsonRpcResponse.success(completedTask, request.id());
-
+            asyncTaskExecutor.submitAsync(taskId, sessionId, handler, history);
+            return JsonRpcResponse.success(submittedTask, request.id());
         } catch (Exception e) {
             return JsonRpcResponse.error(-32603, "Internal error: " + e.getMessage(), request.id());
         }
@@ -94,9 +134,12 @@ public class A2aController {
         }
 
         Task canceledTask = new Task(
-                task.id(), task.sessionId(),
+                task.id(),
+                task.sessionId(),
                 new TaskStatus(TaskState.CANCELED, null, Instant.now().toString()),
-                task.history(), task.artifacts(), task.metadata()
+                task.history(),
+                task.artifacts(),
+                task.metadata()
         );
         taskRepository.save(canceledTask);
 
@@ -105,7 +148,9 @@ public class A2aController {
 
     @SuppressWarnings("unchecked")
     private List<Message> parseHistory(List<Map<String, Object>> rawHistory) {
-        if (rawHistory == null) return List.of();
+        if (rawHistory == null) {
+            return List.of();
+        }
         return rawHistory.stream().map(raw -> {
             String role = (String) raw.get("role");
             List<Map<String, Object>> rawParts = (List<Map<String, Object>>) raw.get("parts");

@@ -4,6 +4,8 @@ import com.jwd.handler.SkillHandler;
 import com.jwd.model.server.*;
 import com.jwd.repository.TaskRepository;
 import com.jwd.skill.StreamingSkillHandler;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -12,6 +14,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 @RestController
+@Tag(name = "A2A 流式任务", description = "A2A SSE 流式任务接口")
 public class A2aStreamController {
 
     private final Map<String, SkillHandler> skillHandlers;
@@ -28,6 +31,7 @@ public class A2aStreamController {
      * tasks/sendSubscribe：SSE 流式任务
      * A2A 协议规定：sendSubscribe 通过独立的 HTTP 接口返回 SSE 流
      */
+    @Operation(summary = "A2A sendSubscribe 流式任务", description = "通过 SSE 推送 A2A 任务状态与产物更新")
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter sendSubscribe(@RequestBody Map<String, Object> rpcRequest) {
         SseEmitter emitter = new SseEmitter(300_000L); // 5 分钟超时

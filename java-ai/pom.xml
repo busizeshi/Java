@@ -12,6 +12,7 @@
     <description>Parent POM for Java AI microservices (Spring AI, LangChain4j, A2A, RAG, Qdrant, Skill)</description>
     <modules>
         <module>a2a</module>
+        <module>agentscope</module>
     </modules>
 
     <properties>
@@ -30,6 +31,8 @@
         <lombok.version>1.18.34</lombok.version>
         <mapstruct.version>1.6.2</mapstruct.version>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <springdoc-openapi.version>2.6.0</springdoc-openapi.version>
+        <swagger-core.version>2.2.22</swagger-core.version>
     </properties>
 
     <dependencyManagement>
@@ -61,6 +64,18 @@
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc-openapi.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-models</artifactId>
+                <version>${swagger-core.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -72,6 +87,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-models</artifactId>
         </dependency>
 
         <!-- JSON 处理 -->

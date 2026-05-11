@@ -1,34 +1,32 @@
 package com.jwd.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import java.util.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class A2aClient {
 
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
 
-    public A2aClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
+    public A2aClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
     }
 
-    /**
-     * 获取 Agent Card
-     */
     public Map<String, Object> getAgentCard(String agentUrl) {
         String cardUrl = agentUrl + "/.well-known/agent.json";
         ResponseEntity<Map> response = restTemplate.getForEntity(cardUrl, Map.class);
         return response.getBody();
     }
 
-    /**
-     * 发送任务（同步，等任务完成后返回）
-     */
     public Map<String, Object> sendTask(String agentUrl, String taskId,
                                         String sessionId, String skillId,
                                         List<Map<String, Object>> history) {
@@ -48,9 +46,19 @@ public class A2aClient {
         return postJsonRpc(agentUrl, rpcRequest);
     }
 
-    /**
-     * 查询任务状态
-     */
+    public Map<String, Object> setPushNotification(String agentUrl, String taskId, String webhookUrl) {
+        Map<String, Object> rpcRequest = Map.of(
+                "jsonrpc", "2.0",
+                "method", "tasks/pushNotification/set",
+                "params", Map.of(
+                        "id", taskId,
+                        "webhookUrl", webhookUrl
+                ),
+                "id", UUID.randomUUID().toString()
+        );
+        return postJsonRpc(agentUrl, rpcRequest);
+    }
+
     public Map<String, Object> getTask(String agentUrl, String taskId) {
         Map<String, Object> rpcRequest = Map.of(
                 "jsonrpc", "2.0",
@@ -61,9 +69,6 @@ public class A2aClient {
         return postJsonRpc(agentUrl, rpcRequest);
     }
 
-    /**
-     * 取消任务
-     */
     public Map<String, Object> cancelTask(String agentUrl, String taskId) {
         Map<String, Object> rpcRequest = Map.of(
                 "jsonrpc", "2.0",
@@ -79,20 +84,16 @@ public class A2aClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // 如果需要鉴权，在这里加 Authorization header
-        // headers.setBearerAuth(apiKey);
-
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(rpcRequest, headers);
-
         ResponseEntity<Map> response = restTemplate.postForEntity(agentUrl + "/", entity, Map.class);
         Map<String, Object> body = response.getBody();
 
         if (body == null) {
-            throw new RuntimeException("空响应");
+            throw new RuntimeException("Empty response");
         }
         if (body.containsKey("error")) {
             Map<String, Object> error = (Map<String, Object>) body.get("error");
-            throw new RuntimeException("A2A 错误: " + error.get("message"));
+            throw new RuntimeException("A2A error: " + error.get("message"));
         }
 
         return (Map<String, Object>) body.get("result");
